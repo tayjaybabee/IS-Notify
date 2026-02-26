@@ -201,8 +201,8 @@ class WindowsNotificationWatcher:
             '’': "'",
             '•': '*',
         }
-        for k, v in replacements.items():
-            s = s.replace(k, v)
+        for char, replacement in replacements.items():
+            s = s.replace(char, replacement)
 
         s = unicodedata.normalize('NFKD', s)
         s = ''.join(ch for ch in s if not unicodedata.combining(ch))
@@ -234,8 +234,8 @@ class WindowsNotificationWatcher:
             secondary_scroll = self._detect_scroll_fn(SECONDARY)
 
         if self._cfg.matrix_debug:
-            sec = 'yes' if (SECONDARY is not None and secondary_scroll is not None) else 'no'
-            print(f'🧪 Matrix scroller armed (secondary present: {sec})')
+            has_secondary_display = 'yes' if (SECONDARY is not None and secondary_scroll is not None) else 'no'
+            print(f'🧪 Matrix scroller armed (secondary present: {has_secondary_display})')
 
         while not self._stop_event.is_set():
             try:
@@ -310,32 +310,32 @@ class WindowsNotificationWatcher:
           3) msg + direction
           4) msg
         """
-        kwargs_full = {
+        kwargs_all_params = {
             'direction': direction,
             'frame_duration': frame_duration,
             'loop': loop,
         }
-        kwargs_no_fd = {
+        kwargs_without_frame_duration = {
             'direction': direction,
             'loop': loop,
         }
-        kwargs_dir_only = {
+        kwargs_direction_only = {
             'direction': direction,
         }
 
         if self._cfg.matrix_use_thread:
             try:
-                await asyncio.to_thread(scroll_fn, msg, **kwargs_full)
+                await asyncio.to_thread(scroll_fn, msg, **kwargs_all_params)
                 return
             except TypeError:
                 pass
             try:
-                await asyncio.to_thread(scroll_fn, msg, **kwargs_no_fd)
+                await asyncio.to_thread(scroll_fn, msg, **kwargs_without_frame_duration)
                 return
             except TypeError:
                 pass
             try:
-                await asyncio.to_thread(scroll_fn, msg, **kwargs_dir_only)
+                await asyncio.to_thread(scroll_fn, msg, **kwargs_direction_only)
                 return
             except TypeError:
                 pass
@@ -343,17 +343,17 @@ class WindowsNotificationWatcher:
             return
 
         try:
-            scroll_fn(msg, **kwargs_full)
+            scroll_fn(msg, **kwargs_all_params)
             return
         except TypeError:
             pass
         try:
-            scroll_fn(msg, **kwargs_no_fd)
+            scroll_fn(msg, **kwargs_without_frame_duration)
             return
         except TypeError:
             pass
         try:
-            scroll_fn(msg, **kwargs_dir_only)
+            scroll_fn(msg, **kwargs_direction_only)
             return
         except TypeError:
             pass
@@ -418,25 +418,25 @@ class WindowsNotificationWatcher:
         except Exception:
             return 'UnknownApp'
 
-        bits: list[str] = []
+        identity_parts: list[str] = []
 
         try:
-            dn = app_info.display_info.display_name
-            if dn:
-                bits.append(str(dn))
+            display_name = app_info.display_info.display_name
+            if display_name:
+                identity_parts.append(str(display_name))
         except Exception:
             pass
 
         for attr in ('app_user_model_id', 'appuser_model_id', 'id'):
             try:
-                val = getattr(app_info, attr)
-                if val:
-                    bits.append(str(val))
+                app_model_id = getattr(app_info, attr)
+                if app_model_id:
+                    identity_parts.append(str(app_model_id))
                     break
             except Exception:
                 pass
 
-        return ' | '.join(bits) if bits else 'UnknownApp'
+        return ' | '.join(identity_parts) if identity_parts else 'UnknownApp'
 
     @staticmethod
     def _extract_text_lines(user_notif) -> list[str]:
@@ -446,9 +446,9 @@ class WindowsNotificationWatcher:
             visual = toast.visual
             for binding in visual.bindings:
                 for text_el in binding.get_text_elements():
-                    txt = (text_el.text or '').strip()
-                    if txt:
-                        lines.append(txt)
+                    text_content = (text_el.text or '').strip()
+                    if text_content:
+                        lines.append(text_content)
         except Exception:
             pass
 
@@ -456,7 +456,7 @@ class WindowsNotificationWatcher:
 
 
 async def main() -> None:
-    cfg = WatcherConfig(
+    watcher_config = WatcherConfig(
         poll_seconds=1.0,
         show_existing_on_start=True,
 
@@ -477,7 +477,7 @@ async def main() -> None:
         secondary_max_chars=60,
     )
 
-    watcher = WindowsNotificationWatcher(cfg)
+    watcher = WindowsNotificationWatcher(watcher_config)
     await watcher.start()
 
 
