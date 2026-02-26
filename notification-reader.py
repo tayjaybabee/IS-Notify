@@ -310,53 +310,28 @@ class WindowsNotificationWatcher:
           3) msg + direction
           4) msg
         """
-        kwargs_all_params = {
-            'direction': direction,
-            'frame_duration': frame_duration,
-            'loop': loop,
-        }
-        kwargs_without_frame_duration = {
-            'direction': direction,
-            'loop': loop,
-        }
-        kwargs_direction_only = {
-            'direction': direction,
-        }
+        kwarg_variants = [
+            {'direction': direction, 'frame_duration': frame_duration, 'loop': loop},
+            {'direction': direction, 'loop': loop},
+            {'direction': direction},
+        ]
 
         if self._cfg.matrix_use_thread:
-            try:
-                await asyncio.to_thread(scroll_fn, msg, **kwargs_all_params)
-                return
-            except TypeError:
-                pass
-            try:
-                await asyncio.to_thread(scroll_fn, msg, **kwargs_without_frame_duration)
-                return
-            except TypeError:
-                pass
-            try:
-                await asyncio.to_thread(scroll_fn, msg, **kwargs_direction_only)
-                return
-            except TypeError:
-                pass
+            for kwargs in kwarg_variants:
+                try:
+                    await asyncio.to_thread(scroll_fn, msg, **kwargs)
+                    return
+                except TypeError:
+                    continue
             await asyncio.to_thread(scroll_fn, msg)
             return
 
-        try:
-            scroll_fn(msg, **kwargs_all_params)
-            return
-        except TypeError:
-            pass
-        try:
-            scroll_fn(msg, **kwargs_without_frame_duration)
-            return
-        except TypeError:
-            pass
-        try:
-            scroll_fn(msg, **kwargs_direction_only)
-            return
-        except TypeError:
-            pass
+        for kwargs in kwarg_variants:
+            try:
+                scroll_fn(msg, **kwargs)
+                return
+            except TypeError:
+                continue
         scroll_fn(msg)
 
     def _try_clear_secondary(self) -> None:
