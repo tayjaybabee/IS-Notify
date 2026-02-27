@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import re
 import unicodedata
 from dataclasses import dataclass
@@ -234,8 +235,8 @@ class WindowsNotificationWatcher:
             secondary_scroll = self._detect_scroll_fn(SECONDARY)
 
         if self._cfg.matrix_debug:
-            has_secondary_display = 'yes' if (SECONDARY is not None and secondary_scroll is not None) else 'no'
-            print(f'🧪 Matrix scroller armed (secondary present: {has_secondary_display})')
+            has_secondary_display = SECONDARY is not None and secondary_scroll is not None
+            print(f'🧪 Matrix scroller armed (secondary present: {"yes" if has_secondary_display else "no"})')
 
         while not self._stop_event.is_set():
             try:
@@ -304,35 +305,28 @@ class WindowsNotificationWatcher:
         frame_duration: float,
     ) -> None:
         """
-        Calls scroll_fn with best-effort kwargs. We degrade gracefully:
-          1) msg + direction + frame_duration + loop
-          2) msg + direction + loop
-          3) msg + direction
-          4) msg
+        Calls scroll_fn passing only the kwargs its signature actually accepts,
+        determined ahead of time via inspect.signature to avoid masking TypeErrors
+        raised from inside the function body.
         """
-        kwarg_variants = [
-            {'direction': direction, 'frame_duration': frame_duration, 'loop': loop},
-            {'direction': direction, 'loop': loop},
-            {'direction': direction},
-        ]
+        all_kwargs = {
+            'direction': direction,
+            'frame_duration': frame_duration,
+            'loop': loop,
+        }
+
+        try:
+            accepted_params = inspect.signature(scroll_fn).parameters
+            accepted_kwargs = {k: v for k, v in all_kwargs.items() if k in accepted_params}
+        except (ValueError, TypeError):
+            # Signature not introspectable (e.g. built-in); pass no extra kwargs.
+            accepted_kwargs = {}
 
         if self._cfg.matrix_use_thread:
-            for kwargs in kwarg_variants:
-                try:
-                    await asyncio.to_thread(scroll_fn, msg, **kwargs)
-                    return
-                except TypeError:
-                    continue
-            await asyncio.to_thread(scroll_fn, msg)
+            await asyncio.to_thread(scroll_fn, msg, **accepted_kwargs)
             return
 
-        for kwargs in kwarg_variants:
-            try:
-                scroll_fn(msg, **kwargs)
-                return
-            except TypeError:
-                continue
-        scroll_fn(msg)
+        scroll_fn(msg, **accepted_kwargs)
 
     def _try_clear_secondary(self) -> None:
         if SECONDARY is None:
