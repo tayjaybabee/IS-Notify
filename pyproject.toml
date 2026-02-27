@@ -13,6 +13,12 @@ dependencies = [
     "is-matrix-forge",
 ]
 
+[project.scripts]
+is-notify = "is_notify.__main__:run"
+
+[tool.poetry]
+packages = [{ include = "is_notify" }]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
