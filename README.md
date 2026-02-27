@@ -15,25 +15,39 @@ IS-Notify polls the Windows `UserNotificationListener` API for toast notificatio
 |---|---|
 | OS | Windows 10 (build 18362+) or Windows 11 |
 | Python | 3.11+ |
+| [Poetry](https://python-poetry.org/) | Recommended for dependency and virtual environment management |
 | [`winsdk`](https://pypi.org/project/winsdk/) | WinRT Python bindings |
 | [`is-matrix-forge`](https://pypi.org/project/is-matrix-forge/) | IS-Matrix LED matrix controller library |
 
 ## Installation
 
-```bash
-pip install winsdk is-matrix-forge
-```
-
-Clone the repository:
+Clone the repository and install dependencies with [Poetry](https://python-poetry.org/):
 
 ```bash
 git clone https://github.com/tayjaybabee/IS-Notify.git
 cd IS-Notify
+poetry install
+```
+
+Poetry will create an isolated virtual environment and install `winsdk` and `is-matrix-forge` automatically.
+
+> **Note:** `winsdk` is a Windows-only package and will only be installed when running on Windows.
+
+### Alternative: pip
+
+```bash
+pip install winsdk is-matrix-forge
 ```
 
 ## Usage
 
-Run the notification reader directly:
+Run the notification reader with Poetry:
+
+```bash
+poetry run python notification-reader.py
+```
+
+Or, if you are already inside the Poetry shell (`poetry shell`), run it directly:
 
 ```bash
 python notification-reader.py
@@ -96,6 +110,7 @@ exclude_apps={'Windows Security', 'Microsoft Store'},
 ```
 IS-Notify/
 ├── notification-reader.py   # Main script: watcher, config, and entry point
+├── pyproject.toml           # Poetry project configuration and dependencies
 ├── README.md
 ├── AGENTS.md
 ├── .github/
