@@ -6,7 +6,15 @@ This document describes the IS-Notify codebase conventions so that AI coding age
 
 ## Repository Purpose
 
-IS-Notify reads Windows toast notifications via the WinRT `UserNotificationListener` API and scrolls them on IS-Matrix LED matrix displays. The single source file, `notification-reader.py`, contains all logic.
+IS-Notify reads Windows toast notifications via the WinRT `UserNotificationListener` API and scrolls them on IS-Matrix LED matrix displays. The codebase is structured as the `is_notify` package:
+
+| Module | Responsibility |
+|---|---|
+| `is_notify/config.py` | `WatcherConfig` frozen dataclass — all runtime knobs |
+| `is_notify/matrix.py` | Hardware initialisation (`CONTROLLERS`, `RIGHT`, `SECONDARY`) and `MatrixDisplay` class (formatting, sanitising, scrolling) |
+| `is_notify/watcher.py` | `WindowsNotificationWatcher` class — WinRT listener, polling, notification handling |
+| `is_notify/__main__.py` | `main()` coroutine and `run()` synchronous entry point |
+| `notification-reader.py` | Backward-compatible shim — delegates to `is_notify.__main__.run()` |
 
 ---
 
@@ -38,9 +46,10 @@ IS-Notify reads Windows toast notifications via the WinRT `UserNotificationListe
 
 ## Adding Features
 
-1. **New configuration knobs** → add a field to `WatcherConfig` (frozen dataclass) with a sensible default and update `README.md`.
-2. **New display behavior** → add a method to `WindowsNotificationWatcher` following the `_verb_noun` naming pattern (e.g., `_run_secondary_ticker`).
-3. **Utility/static helpers** → prefer `@staticmethod` on `WindowsNotificationWatcher` if they don't need `self`; otherwise a module-level function is acceptable.
+1. **New configuration knobs** → add a field to `WatcherConfig` in `is_notify/config.py` with a sensible default and update `README.md`.
+2. **New display behaviour** → add a method to `MatrixDisplay` in `is_notify/matrix.py` following the `_verb_noun` naming pattern (e.g., `_run_secondary_ticker`).
+3. **New notification-handling behaviour** → add a method to `WindowsNotificationWatcher` in `is_notify/watcher.py`.
+4. **Utility/static helpers** → prefer `@staticmethod` on the relevant class; otherwise a module-level function is acceptable.
 
 ---
 
@@ -48,7 +57,8 @@ IS-Notify reads Windows toast notifications via the WinRT `UserNotificationListe
 
 There is currently no automated test suite. When writing tests:
 - Mock `winsdk` imports at the module level (they are Windows-only).
-- Test `_sanitize_for_matrix`, `_passes_filters`, `_format_matrix_messages`, and `_get_app_identity` as pure/static logic without WinRT dependencies.
+- Mock `is_matrix_forge` imports similarly to avoid hardware calls on import.
+- Test `MatrixDisplay.sanitize_for_matrix`, `MatrixDisplay.format_messages`, `WindowsNotificationWatcher._passes_filters`, and `WindowsNotificationWatcher._get_app_identity` as pure/static logic without WinRT or hardware dependencies.
 - Place test files in a `tests/` directory and use `pytest`.
 
 ---
@@ -57,4 +67,4 @@ There is currently no automated test suite. When writing tests:
 
 - Do **not** add support for non-Windows notification APIs in this repository.
 - Do **not** introduce new third-party dependencies without updating `README.md` prerequisites.
-- Do **not** change the overall single-file structure unless the codebase grows to require a package layout.
+- Do **not** collapse the package back into a single file.

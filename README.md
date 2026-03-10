@@ -15,29 +15,51 @@ IS-Notify polls the Windows `UserNotificationListener` API for toast notificatio
 |---|---|
 | OS | Windows 10 (build 18362+) or Windows 11 |
 | Python | 3.11+ |
+| [Poetry](https://python-poetry.org/) | Recommended for dependency and virtual environment management |
 | [`winsdk`](https://pypi.org/project/winsdk/) | WinRT Python bindings |
 | [`is-matrix-forge`](https://pypi.org/project/is-matrix-forge/) | IS-Matrix LED matrix controller library |
 
 ## Installation
 
-```bash
-pip install winsdk is-matrix-forge
-```
-
-Clone the repository:
+Clone the repository and install dependencies with [Poetry](https://python-poetry.org/):
 
 ```bash
 git clone https://github.com/tayjaybabee/IS-Notify.git
 cd IS-Notify
+poetry install
+```
+
+Poetry will create an isolated virtual environment and install `winsdk` and `is-matrix-forge` automatically.
+
+> **Note:** `winsdk` is a Windows-only package and will only be installed when running on Windows.
+
+### Alternative: pip
+
+```bash
+pip install winsdk is-matrix-forge
 ```
 
 ## Usage
 
-Run the notification reader directly:
+Run the notification reader using the installed console script (after `poetry install`):
 
 ```bash
-python notification-reader.py
+is-notify
 ```
+
+Or invoke the package directly with Python:
+
+```bash
+poetry run python -m is_notify
+```
+
+Or, if you are already inside the Poetry shell (`poetry shell`), run it directly:
+
+```bash
+python -m is_notify
+```
+
+`notification-reader.py` in the repository root is kept as a backward-compatible shim and can still be run with `python notification-reader.py`.
 
 On first run, Windows will prompt you to grant notification access. Accept the prompt, or manually enable it in **Settings → System → Notifications → Notification access**.
 
@@ -45,7 +67,7 @@ Press **Ctrl+C** to stop.
 
 ## Configuration
 
-All runtime options are controlled by the `WatcherConfig` dataclass at the bottom of `notification-reader.py`. Edit the `main()` function to change defaults:
+All runtime options are controlled by the `WatcherConfig` dataclass in `is_notify/config.py`. Edit `is_notify/__main__.py` to change defaults:
 
 ```python
 watcher_config = WatcherConfig(
@@ -95,7 +117,14 @@ exclude_apps={'Windows Security', 'Microsoft Store'},
 
 ```
 IS-Notify/
-├── notification-reader.py   # Main script: watcher, config, and entry point
+├── is_notify/                   # Main package
+│   ├── __init__.py              # Package root
+│   ├── config.py                # WatcherConfig dataclass
+│   ├── matrix.py                # Hardware setup and MatrixDisplay class
+│   ├── watcher.py               # WindowsNotificationWatcher class
+│   └── __main__.py              # Entry point (python -m is_notify)
+├── notification-reader.py       # Backward-compatible shim
+├── pyproject.toml               # Poetry project configuration and dependencies
 ├── README.md
 ├── AGENTS.md
 ├── .github/

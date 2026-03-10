@@ -1,0 +1,24 @@
+[project]
+name = "is-notify"
+version = "0.1.0"
+description = "A Windows notification reader that scrolls toast notifications on IS-Matrix LED matrix displays"
+authors = [
+    { name = "tayjaybabee", email = "tayjaybabee@gmail.com" }
+]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "winsdk ; sys_platform == 'win32'",
+    "is-matrix-forge",
+]
+
+[project.scripts]
+is-notify = "is_notify.__main__:run"
+
+[tool.poetry]
+packages = [{ include = "is_notify" }]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
